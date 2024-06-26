@@ -1,24 +1,76 @@
 import React, { useState } from 'react'
 import Header from './Header'
+import axios from "axios";
+import { API_END_POINT } from '../utils/constant';
+import toast from "react-hot-toast"
+import {useNavigate} from "react-router-dom"
+import { useDispatch, useSelector } from 'react-redux';
+import { setLoading, setUser } from '../redux/userSlice';
+
 
 const Login = () => {
     const [isLogin, setIsLogin] = useState(false);
     const [Fullname, setFullName] = useState("");
     const [email, SetEmail] = useState("");
     const [password, setPassword] = useState("");
+    const navigate = useNavigate ();
+    const dispatch = useDispatch();
+
+    const isLoading = useSelector(store=>store.app.isLoading);
 
     const loginHandler = () => {
         setIsLogin(!isLogin);
     }
-
-    const getInputData = (e)=>{
+    const getInputData = async (e)=>{
         e.preventDefault();
-        console.log(Fullname,email,password);
+        dispatch(setLoading(true));
+        if(isLogin){
+            //login
+            const user = {email,password};
+            try {
+                const res = await axios.post(`${API_END_POINT}/login`, user,{
+                     headers:{
+                    'Content-Type':'application/json'
+                },
+                withCredentials:true
+                });
+                if(res.data.success){
+                    toast.success(res.data.message);
+                }
+                dispatch(setUser(res.data.user));
+                navigate("/browse");
+            } catch (error) {
+                toast.error(error.response.data.message);
+                console.log(error);
+            } finally {
+                dispatch(setLoading(false));
+            }
+        }else{
+            //register
+            dispatch(setLoading(true));
+        const user = {Fullname, email, password};
+      try {
+        const res = await axios.post(`${API_END_POINT}/register`,user,{
+            headers:{
+                'Content-Type':'application/json'
+            },
+            withCredentials:true
+            });
+       if(res.data.success){
+            toast.success(res.data.message);
+        }
+        setIsLogin(true);
+      } catch (error) {
+        toast.error(error.response.data.message);
+        console.log(error);
+      } finally{
+            dispatch(setLoading(false));
+      }
+    }
         setFullName("");
         SetEmail("");
         setPassword("");
     }
-
     return (
         <div>
             <Header />
@@ -33,7 +85,7 @@ const Login = () => {
                     }
                     <input value={email} onChange={(e)=>SetEmail(e.target.value)} type='email' placeholder='Email' className='outline-none p-3 my-2 rounded-sm bg-gray-800 text-white'/>
                     <input value={password} onChange={(e)=>setPassword(e.target.value)} type='password' placeholder='Password' className='outline-none p-3 my-2 rounded-sm bg-gray-800 text-white'/>
-                    <button className=' bg-red-600 mt-6 p-3 text-white rounded-sm font-medium'>{isLogin?"Login":"Signup"}</button>
+                    <button type='submit' className=' bg-red-600 mt-6 p-3 text-white rounded-sm font-medium'>{`${isLoading ? "loading...":(isLogin?"login":"signup")}`}</button>
                     <p className='text-white mt-2'>{isLogin ? "New to Netflix?" : "Already have an account?"}<span onClick={loginHandler} className='ml-1 text-blue-900 font-medium cursor-pointer'>{isLogin ? "Signup" : "Login"}</span></p>
                 </div>
             </form>
